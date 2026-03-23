@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Text Detector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px;
+      color: white;
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #f97316, #facc15);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #a5b4fc;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 620px;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: #c7d2fe;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 180px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      color: white;
+      font-size: 0.95rem;
+      padding: 14px;
+      resize: vertical;
+      outline: none;
+      transition: border 0.3s;
+    }
+
+    textarea:focus {
+      border-color: #818cf8;
+    }
+
+    textarea::placeholder { color: #6b7280; }
+
+    .word-count {
+      text-align: right;
+      font-size: 0.78rem;
+      color: #6b7280;
+      margin-top: 6px;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.3s, transform 0.2s;
+    }
+
+    .btn:hover { opacity: 0.9; transform: scale(1.01); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .clear-btn {
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      color: #a5b4fc;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.3s;
+    }
+
+    .clear-btn:hover { background: rgba(255,255,255,0.05); }
+
+    .result-box {
+      margin-top: 24px;
+      border-radius: 16px;
+      padding: 22px;
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    .result-ai {
+      background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(220,38,38,0.1));
+      border: 1px solid rgba(239,68,68,0.4);
+    }
+
+    .result-human {
+      background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(22,163,74,0.1));
+      border: 1px solid rgba(34,197,94,0.4);
+    }
+
+    .result-mixed {
+      background: linear-gradient(135deg, rgba(234,179,8,0.2), rgba(202,138,4,0.1));
+      border: 1px solid rgba(234,179,8,0.4);
+    }
+
+    .result-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .result-desc {
+      font-size: 0.88rem;
+      color: #d1d5db;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .progress-label {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 1s ease;
+    }
+
+    .fill-ai { background: linear-gradient(90deg, #ef4444, #dc2626); }
+    .fill-human { background: linear-gradient(90deg, #22c55e, #16a34a); }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.1);
+      color: #e5e7eb;
+    }
+
+    .loader {
+      text-align: center;
+      padding: 20px;
+      display: none;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 0.78rem;
+      color: #4b5563;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">🔍 AI Text Detector</div>
+  <p class="subtitle">জানুন — লেখাটি AI লিখেছে নাকি মানুষ?</p>
+
+  <div class="card">
+    <label>📝 আপনার টেক্সট এখানে পেস্ট করুন</label>
+    <textarea id="inputText" placeholder="এখানে যেকোনো বাংলা বা ইংরেজি লেখা পেস্ট করুন..."></textarea>
+    <div class="word-count" id="wordCount">০ টি শব্দ</div>
+
+    <button class="btn" id="detectBtn" onclick="detectText()">🔍 Detect করুন</button>
+    <button class="clear-btn" onclick="clearAll()">🗑️ Clear করুন</button>
+
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      <p style="color:#a5b4fc; font-size:0.9rem;">বিশ্লেষণ করা হচ্ছে...</p>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-desc" id="resultDesc"></div>
+
+      <div class="progress-label">
+        <span>🤖 AI সম্ভাবনা</span>
+        <span id="aiPercent">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-ai" id="aiBar" style="width:0%"></div>
+      </div>
+
+      <div class="progress-label">
+        <span>👤 মানুষের লেখা</span>
+        <span id="humanPercent">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-human" id="humanBar" style="width:0%"></div>
+      </div>
+
+      <div class="badges" id="badges"></div>
+    </div>
+  </div>
+
+  <div class="footer">⚠️ এটি একটি বিশ্লেষণ টুল। ফলাফল সবসময় ১০০% সঠিক নাও হতে পারে।</div>
+
+<script>
+  const textarea = document.getElementById('inputText');
+  textarea.addEventListener('input', () => {
+    const words = textarea.value.trim().split(/\s+/).filter(w => w.length > 0);
+    document.getElementById('wordCount').textContent = words.length + ' টি শব্দ';
+  });
+
+  function analyzeText(text) {
+    const sentences = text.split(/[।.!?]+/).filter(s => s.trim().length > 10);
+    const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+    const avgWordLen = words.reduce((a, w) => a + w.length, 0) / words.length;
+
+    // Sentence length variance (burstiness)
+    const sentLengths = sentences.map(s => s.trim().split(/\s+/).length);
+    const avgLen = sentLengths.reduce((a, b) => a + b, 0) / (sentLengths.length || 1);
+    const variance = sentLengths.reduce((a, b) => a + Math.abs(b - avgLen), 0) / (sentLengths.length || 1);
+
+    // Repetitive words check
+    const wordFreq = {};
+    words.forEach(w => { const wl = w.toLowerCase(); wordFreq[wl] = (wordFreq[wl] || 0) + 1; });
+    const repeated = Object.values(wordFreq).filter(v => v > 2).length;
+    const repetitionRate = repeated / Object.keys(wordFreq).length;
+
+    // Punctuation density
+    const punctCount = (text.match(/[,;:]/g) || []).length;
+    const punctDensity = punctCount / words.length;
+
+    // AI-like phrases (English)
+    const aiPhrases = [
+      'furthermore', 'moreover', 'in conclusion', 'it is important',
+      'in summary', 'to summarize', 'it should be noted', 'it is worth noting',
+      'in addition', 'as a result', 'due to the fact', 'in order to',
+      'it can be seen', 'plays a crucial role', 'delve into', 'leverage',
+      'it is essential', 'comprehensive', 'facilitate', 'utilize',
+      'this essay', 'this article', 'this paper'
+    ];
+    const lowerText = text.toLowerCase();
+    const aiPhraseCount = aiPhrases.filter(p => lowerText.includes(p)).length;
+
+    // Score calculation
+    let aiScore = 50;
+
+    if (variance < 2) aiScore += 20;
+    else if (variance > 6) aiScore -= 20;
+
+    if (repetitionRate < 0.05) aiScore += 10;
+    else if (repetitionRate > 0.15) aiScore -= 10;
+
+    if (punctDensity > 0.08) aiScore += 10;
+    else if (punctDensity < 0.02) aiScore -= 5;
+
+    aiScore += aiPhraseCount * 8;
+
+    if (avgWordLen > 5.5) aiScore += 10;
+    else if (avgWordLen < 4) aiScore -= 10;
+
+    aiScore = Math.max(5, Math.min(95, aiScore));
+    return Math.round(aiScore);
+  }
+
+  function detectText() {
+    const text = document.getElementById('inputText').value.trim();
+    if (text.length < 50) {
+      alert('⚠️ অন্তত ৫০টি অক্ষর লিখুন বিশ্লেষণের জন্য!');
+      return;
+    }
+
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('detectBtn').disabled = true;
+
+    setTimeout(() => {
+      const aiScore = analyzeText(text);
+      const humanScore = 100 - aiScore;
+
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('detectBtn').disabled = false;
+
+      const resultBox = document.getElementById('resultBox');
+      resultBox.style.display = 'block';
+
+      const title = document.getElementById('resultTitle');
+      const desc = document.getElementById('resultDesc');
+      const badges = document.getElementById('badges');
+
+      resultBox.className = 'result-box';
+
+      if (aiScore >= 70) {
+        resultBox.classList.add('result-ai');
+        title.textContent = '🤖 সম্ভবত AI লিখেছে';
+        desc.textContent = 'এই লেখাটিতে AI-এর বৈশিষ্ট্য বেশি পাওয়া গেছে। বাক্যগুলো অনেক গোছানো, শব্দ বৈচিত্র্য কম এবং লেখার ধরন অনুমানযোগ্য।';
+        badges.innerHTML = '<span class="badge">📏 সমান বাক্য</span><span class="badge">🔁 পুনরাবৃত্তি</span><span class="badge">📚 আনুষ্ঠানিক ভাষা</span>';
+      } else if (aiScore <= 35) {
+        resultBox.classList.add('result-human');
+        title.textContent = '✅ মানুষের লেখা মনে হচ্ছে';
+        desc.textContent = 'এই লেখাটিতে মানবিক বৈশিষ্ট্য বেশি পাওয়া গেছে। বাক্যে বৈচিত্র্য আছে, অনুভূতি প্রকাশ পাচ্ছে এবং লেখার গতি স্বাভাবিক।';
+        badges.innerHTML = '<span class="badge">💬 স্বাভাবিক ভাষা</span><span class="badge">🌊 বৈচিত্র্যময়</span><span class="badge">❤️ আবেগ আছে</span>';
+      } else {
+        resultBox.classList.add('result-mixed');
+        title.textContent = '⚠️ মিশ্র ফলাফল';
+        desc.textContent = 'লেখাটিতে AI ও মানুষ উভয়ের বৈশিষ্ট্য পাওয়া গেছে। হতে পারে AI-এর সাহায্যে লেখা হয়েছে অথবা AI লেখা পরে সম্পাদনা করা হয়েছে।';
+        badges.innerHTML = '<span class="badge">🔀 মিশ্র ধরন</span><span class="badge">✏️ সম্পাদিত হতে পারে</span>';
+      }
+
+      document.getElementById('aiPercent').textContent = aiScore + '%';
+      document.getElementById('humanPercent').textContent = humanScore + '%';
+
+      setTimeout(() => {
+        document.getElementById('aiBar').style.width = aiScore + '%';
+        document.getElementById('humanBar').style.width = humanScore + '%';
+      }, 100);
+
+    }, 2000);
+  }
+
+  function clearAll() {
+    document.getElementById('inputText').value = '';
+    document.getElementById('wordCount').textContent = '০ টি শব্দ';
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('aiBar').style.width = '0%';
+    document.getElementById('humanBar').style.width = '0%';
+  }
+</script>
+</body>
+</html>
